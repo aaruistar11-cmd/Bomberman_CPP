@@ -1,0 +1,198 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{geometry}
+\usepackage{hyperref}
+
+\geometry{a4paper, margin=2cm}
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    numbers=left,                    
+    numbersep=5pt,                  
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=2
+}
+\lstset{style=mystyle}
+
+\renewcommand{\contentsname}{Indice}
+
+\title{\textbf{Relazione di Progetto: Bomberman TUI}}
+\author{Sviluppatore del Progetto}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+La presente relazione illustra le fasi di sviluppo del progetto "Bomberman TUI" in C++ con libreria ncurses. Il documento mette in luce il processo evolutivo del codice, confrontando le idee e le implementazioni iniziali con le soluzioni finali adottate per risolvere bug tecnici, migliorare l'efficienza e rispettare i rigidi vincoli accademici imposti.
+\end{abstract}
+
+\tableofcontents
+\newpage
+
+\section{Introduzione}
+Lo sviluppo del progetto ha richiesto di replicare le dinamiche classiche di Bomberman all'interno di un'interfaccia a terminale (TUI) usando \texttt{ncurses}. Tra le restrizioni più stringenti vi era il divieto di usare costrutti moderni della Standard Template Library (es. \texttt{std::vector}), il divieto di usare la parola chiave \texttt{private} (sostituita da \texttt{protected}) e il divieto di utilizzare distruttori espliciti, rendendo la gestione della memoria una sfida puramente manuale.
+
+\vspace{0.5cm}
+
+% ====================================================================
+% SEZIONE 1: MAPPA E LAYOUT
+% ====================================================================
+\section{Generazione della Mappa e Rendering Visivo}
+
+\subsection{Cosa ho implementato}
+Il problema principale era disegnare la mappa di gioco (40x20) rendendola esteticamente identica al video di riferimento fornito dai docenti. Inizialmente avevo pensato di usare caratteri ASCII classici come \texttt{\#} per i muri e \texttt{\%} per le casse, e applicare colori basilari. Avevo anche tentato di usare dei caratteri UTF-8 speciali e costrutti ncurses come \texttt{ACS\_BLOCK} per simulare blocchi pieni.
+
+\subsection{Il mio codice (Idee Iniziali)}
+Inizialmente avevo definito la matrice in modo invertito e usato una logica complessa per disegnare i blocchi a schermo:
+\begin{lstlisting}[language=C++]
+// Errore logico nella definizione iniziale
+char griglia[40][20]; 
+
+// Tentativo iniziale di renderizzare i blocchi
+if (blocco == '#') {
+    attron(COLOR_PAIR(5) | A_BOLD);
+    addch(ACS_BLOCK);
+    attroff(COLOR_PAIR(5) | A_BOLD);
+}
+\end{lstlisting}
+Avevo anche provato a generare i blocchi usando griglie geometriche rigorose (es. muri solo in posizioni pari) o formule matematiche fisse per la difficoltà.
+
+\subsection{Eventuali problemi}
+Questa implementazione presentava tre gravi problemi:
+\begin{enumerate}
+    \item \textbf{Corruzione Memoria}: Dichiarare \texttt{griglia[40][20]} e poi scorrere la larghezza fino a 40 (che per il C++ era l'indice delle colonne, impostato a 20) causava un accavallamento di memoria, distorcendo l'intera mappa a schermo.
+    \item \textbf{Instabilità Visiva}: L'uso combinato di \texttt{ACS\_BLOCK}, macro complesse e UTF-8 creava artefatti grafici su terminali diversi, rendendo la cornice e i muri "rotti".
+    \item \textbf{Level Design Errato}: Applicando una griglia rigida, il gioco non rispecchiava il video demo del professore, in cui i muri solidi sono distribuiti in modo pseudo-casuale (a cluster). Generarli in modo puramente casuale senza limiti rischiava però di creare mappe al 100\% bloccate.
+\end{enumerate}
+
+\subsection{Soluzione migliorata}
+Insieme abbiamo corretto l'allineamento della matrice tornando a \texttt{griglia[20][40]}. Per il rendering visivo, abbiamo sostituito l'instabile \texttt{ACS\_BLOCK} con una tecnica estremamente robusta: stampare uno spazio vuoto (\texttt{' '}) assegnandogli però un \texttt{COLOR\_PAIR} in cui lo sfondo è bianco (o grigio).
+
+Per la generazione del livello, abbiamo implementato un algoritmo puramente pseudo-casuale fedele al video del professore, integrando però uno \texttt{switch-case} che modula le percentuali (densità) in base al livello per evitare soffocamenti:
+
+\begin{lstlisting}[language=C++]
+// Rendering Sicuro dei Muri Solidi
+if (elemento == '#') {
+    attron(COLOR_PAIR(5)); // Sfondo bianco, testo nero
+    addch(' ');
+    attroff(COLOR_PAIR(5));
+}
+
+// ... nello switch del level design:
+case 5: // Livello 5: Difficile ma non asfissiante
+    densitaSolidi = 15; // Massimo 15% di muri indistruttibili
+    densitaCasse = 30;  // Massimo 30% di casse
+    numeroTotaleNemici = 10;
+    break;
+\end{lstlisting}
+
+\subsection{Motivazioni delle scelte}
+Si è scelto lo "spazio colorato" rispetto ai macro \texttt{ACS\_*} per garantire compatibilità al 100\% su qualsiasi terminale Linux usato per la correzione. Lo \texttt{switch-case} asimmetrico per il rateo di spawn assicura che il gioco aderisca al video ufficiale dei tutor (niente scacchiera fissa) mantenendo però un gameplay bilanciato e sempre risolvibile.
+
+\subsection{Come lo spiegherei all'esame}
+\textit{"Professore, inizialmente avevo provato a disegnare i blocchi usando macro speciali di ncurses o caratteri ASCII avanzati, ma mi sono accorto che su alcuni terminali si rompeva la formattazione. Ho quindi optato per una soluzione più elegante e sicura: stampare dei semplici caratteri 'spazio', ma colorando il background tramite i \texttt{COLOR\_PAIR}. \\
+Per la generazione della mappa, dopo aver analizzato a fondo il vostro video dimostrativo, ho notato che i muri non formano una scacchiera perfetta. Ho quindi implementato un algoritmo pseudo-casuale. Per evitare che la mappa generata fosse 'ingiocabile', ho legato la probabilità di spawn di muri e casse a uno \texttt{switch} basato sull'id del livello."}
+
+\vspace{1cm}
+
+% ====================================================================
+% SEZIONE 2: LISTA BIDIREZIONALE DEI LIVELLI
+% ====================================================================
+\section{Gestione Livelli: Lista Bidirezionale}
+
+\subsection{Cosa ho implementato}
+Il progetto richiede la presenza di 5 livelli, con la possibilità di spostarsi al livello successivo o precedente tramite input utente ('n' e 'p'). Dato il divieto di usare \texttt{std::vector}, dovevo trovare un modo per immagazzinare e navigare tra le mappe.
+
+\subsection{Il mio codice (Idee Iniziali)}
+Sapevo di dover usare una lista concatenata, ma gestire correttamente i puntatori avanti e indietro in C++ senza leak di memoria e senza usare i costruttori/distruttori standard in modo moderno mi creava insicurezza.
+
+\subsection{Eventuali problemi}
+Il rischio maggiore era lasciare memoria appesa (memory leak) alla chiusura del programma, dato il vincolo del professore che vieta esplicitamente l'uso di distruttori automatici nelle classi.
+
+\subsection{Soluzione migliorata}
+Abbiamo progettato una classe \texttt{GestoreLivelli} che incapsula la logica della lista. I nodi della lista sono gli stessi oggetti \texttt{Mappa}, a cui abbiamo aggiunto puntatori pubblici \texttt{next} e \texttt{prev}.
+
+La deallocazione è stata implementata in modo rigorosamente manuale e iterativo alla fine del \texttt{main()}:
+
+\begin{lstlisting}[language=C++]
+Mappa* temp = gestore.getTesta();
+while (temp != nullptr) {
+    Mappa* daCancellare = temp;
+    temp = temp->next;
+    delete daCancellare; // Deallocazione manuale esplicita
+}
+\end{lstlisting}
+
+\subsection{Motivazioni delle scelte}
+Questa architettura soddisfa due requisiti critici: le prestazioni (navigare ai livelli adiacenti costa $O(1)$) e il pieno rispetto dei vincoli accademici. Aver spostato la deallocazione nel \texttt{main} rende palese al correttore che la memoria è stata gestita consapevolmente e non delegata a distruttori nascosti.
+
+\subsection{Come lo spiegherei all'esame}
+\textit{"Visto il divieto di usare la Standard Template Library, ho strutturato i livelli come una vera e propria lista doppiamente concatenata. Ogni oggetto \texttt{Mappa} è un nodo che punta al livello successivo e precedente. La vera particolarità è la gestione della memoria: rispettando il divieto di usare i distruttori di classe, ho scritto un ciclo dedicato nel \texttt{main} che intercetta il momento esatto in cui il gioco si chiude, scorre l'intera lista partendo dalla testa e usa il comando \texttt{delete} per liberare manualmente la memoria allocata con \texttt{new} per ogni singola mappa."}
+
+\vspace{1cm}
+
+% ====================================================================
+% SEZIONE 3: SISTEMA DI COLLISIONI
+% ====================================================================
+\section{Sistema di Collisioni}
+
+\subsection{Cosa ho implementato}
+Per permettere il movimento del giocatore e bloccarlo contro i muri, dovevo implementare un sistema di collisioni. 
+
+\subsection{Il mio codice (Idee Iniziali)}
+La mia prima idea era quella di creare una \textbf{seconda matrice numerica} (di interi) nascosta dietro quella visiva, in cui ogni posizione aveva un valore numerico:
+\begin{itemize}
+    \item \texttt{0} $\rightarrow$ Nessun muro (casella libera)
+    \item \texttt{1} $\rightarrow$ Muro distruttibile
+    \item \texttt{-1} $\rightarrow$ Muro indistruttibile
+\end{itemize}
+L'idea era di controllare questa matrice numerica prima di ogni spostamento.
+
+\subsection{Eventuali problemi}
+Creare una matrice di interi separata per le collisioni è un approccio inefficiente. Violerebbe il principio DRY (Don't Repeat Yourself). Inoltre, creerebbe gravissimi problemi di sincronizzazione: se una bomba esplode e distrugge una cassa, bisognerebbe ricordarsi di eliminare la cassa dalla matrice visiva \textit{e} aggiornare contemporaneamente l'1 a 0 nella matrice intera. Una mancata sincronizzazione permetterebbe al giocatore di camminare attraverso muri apparentemente intatti o bloccarsi nel vuoto.
+
+\subsection{Soluzione migliorata}
+Invece di creare nuove strutture dati, abbiamo riutilizzato la matrice visiva \texttt{char griglia[20][40]} esistente come nostra mappa di collisione universale. Abbiamo implementato in \texttt{Mappa} dei getter/setter sicuri:
+
+\begin{lstlisting}[language=C++]
+char Mappa::getCella(int y, int x) {
+    // Controllo dei confini per evitare Segmentation Fault
+    if (y >= 0 && y < altezza && x >= 0 && x < larghezza) {
+        return griglia[y][x];
+    }
+    return '#'; // Oltre il confine è muro
+}
+\end{lstlisting}
+
+Quando il Giocatore calcola il suo spostamento in base all'input, gli basta interrogare la mappa: se \texttt{getCella} restituisce \texttt{' '}, si sposta; altrimenti se restituisce \texttt{'\#'} o \texttt{'\%'} si blocca.
+
+\subsection{Motivazioni delle scelte}
+Leggere direttamente lo stato logico della mappa visiva garantisce la "Single Source of Truth" (Singola Fonte di Verità). Nessun rischio di desincronizzazione, meno memoria occupata, e complessità del codice dimezzata. I check (\texttt{y < altezza} ecc.) evitano inoltre i classici errori di \textit{segmentation fault} quando i personaggi toccano il bordo dello schermo.
+
+\subsection{Come lo spiegherei all'esame}
+\textit{"Per le collisioni, inizialmente avevo pensato di creare una seconda matrice di interi riempita con 0, 1 e -1 per calcolare ostacoli e muri. Riflettendoci, ho capito che era ridondante e pericoloso: avrei dovuto mantenere sincronizzate due matrici ogni volta che una bomba esplodeva. \\
+La mia soluzione definitiva è stata quella di usare la matrice \texttt{char griglia} stessa come unica fonte di verità. Ho creato un metodo \texttt{getCella()} che viene richiamato dall'entità in movimento. Il giocatore 'guarda' nella griglia cosa c'è nelle coordinate in cui vuole andare: se trova il carattere spazio, procede e aggiorna la matrice spostando la sua \texttt{@}; se trova il carattere del muro, l'azione di spostamento viene bloccata alla radice. I miei 0, 1 e -1 sono diventati direttamente i caratteri visivi spazio, \% e \#!"}
+
+\end{document}

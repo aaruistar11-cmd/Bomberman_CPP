@@ -1,0 +1,10 @@
+ali 1500
+thomas 1000
+lorenzo 190
+1234 160
+breveglieri 110
+thomatriks 80
+nhnhn 20
+lollo 0
+nico 0
+4444 0
