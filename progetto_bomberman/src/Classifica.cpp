@@ -3,6 +3,7 @@
 Classifica::Classifica(){
     strcpy(numpunti,"INSERISCI QUANTI PUNTI VISUALIZZARE:");
     punti=0;
+    backBtn = NULL;
 }
 
 //Funzione per contare il numero di righe
@@ -27,79 +28,134 @@ int Classifica::contaRighe(char t[]) {
     return righe;
 }
 
+//Crea e aggiorna il pulsante indietro in alto a sinistra
+void Classifica::aggiornaBackButton() {
+    if (backBtn != NULL) {
+        werase(backBtn);
+        delwin(backBtn);
+    }
+    backBtn = newwin(3, 5, 1, 2);
+    box(backBtn, 0, 0);
+    mvwprintw(backBtn, 1, 2, "<");
+    wrefresh(backBtn);
+}
+
+//Controlla se il click del mouse è sul pulsante indietro
+bool Classifica::isClickBackButton(MEVENT& event) {
+    if (backBtn == NULL) return false;
+    return (event.x >= 2 && event.x <= 6 && event.y >= 1 && event.y <= 3);
+}
+
 //Crea la barra di controllo per chiedermi quanti punti voglio visualizzare
 void Classifica::Npunti() {
-    if (!sch.controllaDimensione(40,20)) {
+    flushinp();
+    bool inInput = true;
+    while (inInput) {
+        if (!sch.controllaDimensione(40,20)) {
+            werase(stdscr);
+            refresh();
+        }
+        int maxY, maxX;
+        getmaxyx(stdscr, maxY, maxX);
+        int w = 60;
+        if (maxX<60) w=maxX-4;
+        int h = 3;
+        int startY = 5;
+        int startX = (maxX - w)/2;
+        int nm=w-4;
+        WINDOW*win3 = newwin(h, w, startY, startX);
+        box(win3, 0, 0);
+        strcpy(numpunti,"INSERISCI QUANTI PUNTI VISUALIZZARE:");
+        mvwaddnstr(win3, 1, 2, numpunti, nm);
+        nm=9;
+        keypad(win3,true);
+        aggiornaBackButton();
+        int a=0;
+        int ch;
+        numpunti[0]='\0';
+        wmove(win3, 1, 2);
+        wrefresh(win3);
+        bool backClicked = false;
+        bool needsRedraw = false;
+        while (!backClicked) {
+            ch = wgetch(win3);
+            if (ch == '\n' && a >= 1) break;
+            needsRedraw = false;
+            switch (ch) {
+            case KEY_RESIZE:
+                getmaxyx(stdscr, maxY, maxX);
+                if (!sch.controllaDimensione(40,20)) {
+                    werase(stdscr);
+                    refresh();
+                }
+                w = 60;
+                if (maxX<60) w=maxX-4;
+                startX = (maxX - w)/2;
+                startY = 5;
+                wresize(win3, h, w);
+                mvwin(win3, startY, startX);
+                aggiornaBackButton();
+                if (a>nm) {
+                    a=nm;
+                    numpunti[a]='\0';
+                }
+                needsRedraw = true;
+                break;
+            case KEY_BACKSPACE:
+            case 127:
+                if(a>=1) {
+                    a--;
+                    numpunti[a]='\0';
+                }
+                needsRedraw = true;
+                break;
+            case KEY_MOUSE: {
+                MEVENT event;
+                if (getmouse(&event) == OK) {
+                    if (isClickBackButton(event)) {
+                        backClicked = true;
+                    }
+                }
+                break;
+            }
+            default:
+                if (ch >= 48 && ch <= 57){
+                    if(a<nm) {
+                        numpunti[a++]=ch;
+                        numpunti[a] = '\0';
+                    }
+                }
+                needsRedraw = true;
+                break;
+            }
+            if (!backClicked && needsRedraw) {
+                werase(win3);
+                box(win3, 0, 0);
+                mvwaddnstr(win3, 1, 2, numpunti, nm);
+                wmove(win3, 1, 2 + a);
+                wrefresh(win3);
+            }
+        }
+        werase(win3);
+        wrefresh(win3);
+        delwin(win3);
+        if (backBtn != NULL) {
+            werase(backBtn);
+            wrefresh(backBtn);
+            delwin(backBtn);
+            backBtn = NULL;
+        }
         werase(stdscr);
         refresh();
+        
+        if (backClicked) {
+            inInput = false;
+        } else {
+            int PUNTI=atoi(numpunti);
+            mostra(PUNTI);
+        }
     }
-    int maxY, maxX;
-    getmaxyx(stdscr, maxY, maxX);
-    int w = 60;
-    if (maxX<60) w=maxX-4;
-    int h = 3;
-    int startY = 5;
-    int startX = (maxX - w)/2;
-    int nm=w-4;
-    WINDOW*win3 = newwin(h, w, startY, startX);
-    box(win3, 0, 0);
-    mvwaddnstr(win3, 1, 2, numpunti, nm);
-    nm=9;
-    keypad(win3,true);
-    int a=0;
-    int ch;
-    numpunti[0]='\0';
-    wmove(win3, 1, 2);
-    wrefresh(win3);
-    while((ch = wgetch(win3)) != '\n'||a<1) {
-        switch (ch) {
-        case KEY_RESIZE:
-            getmaxyx(stdscr, maxY, maxX);
-            if (!sch.controllaDimensione(40,20)) {
-                werase(stdscr);
-                refresh();
-            }
-            w = 60;
-            if (maxX<60) w=maxX-4;
-            startX = (maxX - w)/2;
-            startY = 5;
-            wresize(win3, h, w);
-            mvwin(win3, startY, startX);
-            if (a>nm) {
-                a=nm;
-                numpunti[a]='\0';
-            }
-            break;
-        case KEY_BACKSPACE:
-        case 127:
-            if(a>=1) {
-                a--;
-                numpunti[a]='\0';
-            }
-            break;
-        default:
-            if (ch >= 48 && ch <= 57){
-                if(a<nm) {
-                    numpunti[a++]=ch;
-                    numpunti[a] = '\0';
-                }
-            }
-            break;
-    }
-        werase(win3);
-        box(win3, 0, 0);
-        mvwaddnstr(win3, 1, 2, numpunti, nm);
-        wmove(win3, 1, 2 + a);
-        wrefresh(win3);
-    }
-    werase(win3);
-    wrefresh(win3);
-    delwin(win3);
-    werase(stdscr);
-    refresh();
-    int PUNTI=atoi(numpunti);
-    mostra(PUNTI);
-};
+}
 
 //Mi stampa la classifica e ne gestisce l'uscita e lo scorrimento
 void Classifica::mostra(int PUN) {
@@ -113,10 +169,7 @@ void Classifica::mostra(int PUN) {
     bool redraw = true;
     bool cl=true;
     WINDOW* wClass = newwin(h, w, (maxY - h) / 2, (maxX - w) / 2);
-    WINDOW* in = newwin(3, 5, 1, 2);
-    box(in, 0, 0);
-    mvwprintw(in, 1, 2, "<");
-    wrefresh(in);
+    aggiornaBackButton();
     keypad(wClass, true);
     ifstream file("Classifica.txt");
     int cha;
@@ -134,7 +187,6 @@ void Classifica::mostra(int PUN) {
             if (cha == KEY_RESIZE) {
                 sch.controllaDimensione(40,20);
                 werase(wClass);
-                werase(in);
                 getmaxyx(stdscr, maxY, maxX);
                 h = maxY - 5;
                 w = maxX - 16;
@@ -145,16 +197,12 @@ void Classifica::mostra(int PUN) {
                 refresh();
                 box(wClass, 0, 0);
                 mvwprintw(wClass, 3, 2, "Errore apertura file!");
-                box(in, 0, 0);
-                mvwprintw(in, 1, 2, "<");
                 wrefresh(wClass);
-                wrefresh(in);
+                aggiornaBackButton();
             }
             if (cha == KEY_MOUSE) {
                 if (getmouse(&event) == OK) {
-                    int x = event.x;
-                    int y = event.y;
-                    if (x >= 2 && x <= 6 && y >= 1 && y <= 3) {
+                    if (isClickBackButton(event)) {
                         cl = false;
                     }
                 }
@@ -205,9 +253,7 @@ void Classifica::mostra(int PUN) {
                     break;
                 case KEY_MOUSE:
                     if (getmouse(&event) == OK) {
-                        int x = event.x;
-                        int y = event.y;
-                        if (x >= 2 && x <= 6 && y >= 1 && y <= 3) {
+                        if (isClickBackButton(event)) {
                             cl = false;
                             redraw = false;
                         }
@@ -220,20 +266,16 @@ void Classifica::mostra(int PUN) {
                 for (int i = 0; i < cont; i++)
                     file.getline(ch, 70);
                 werase(wClass);
-                werase(in);
                 box(wClass, 0, 0);
                 mvwprintw(wClass, 1, 2, "CLASSIFICA:");
-                box(in, 0, 0);
-                mvwprintw(in, 1, 2, "<");
                 int r = 2;
                 while (file.getline(ch, 70) && r < h - 2 && r<=rig+1) {
                     r++;
                     mvwprintw(wClass, r, 2, "%s", ch);
                 }
                 touchwin(wClass);
-                touchwin(in);
                 wrefresh(wClass);
-                wrefresh(in);
+                aggiornaBackButton();
                 redraw = false;
             }
         }
@@ -241,9 +283,12 @@ void Classifica::mostra(int PUN) {
     werase(wClass);
     wrefresh(wClass);
     delwin(wClass);
-    werase(in);
-    wrefresh(in);
-    delwin(in);
+    if (backBtn != NULL) {
+        werase(backBtn);
+        wrefresh(backBtn);
+        delwin(backBtn);
+        backBtn = NULL;
+    }
     werase(stdscr);
     touchwin(stdscr);
     refresh();

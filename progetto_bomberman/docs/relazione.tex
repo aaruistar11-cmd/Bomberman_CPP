@@ -195,4 +195,5 @@ Leggere direttamente lo stato logico della mappa visiva garantisce la "Single So
 \textit{"Per le collisioni, inizialmente avevo pensato di creare una seconda matrice di interi riempita con 0, 1 e -1 per calcolare ostacoli e muri. Riflettendoci, ho capito che era ridondante e pericoloso: avrei dovuto mantenere sincronizzate due matrici ogni volta che una bomba esplodeva. \\
 La mia soluzione definitiva è stata quella di usare la matrice \texttt{char griglia} stessa come unica fonte di verità. Ho creato un metodo \texttt{getCella()} che viene richiamato dall'entità in movimento. Il giocatore 'guarda' nella griglia cosa c'è nelle coordinate in cui vuole andare: se trova il carattere spazio, procede e aggiorna la matrice spostando la sua \texttt{@}; se trova il carattere del muro, l'azione di spostamento viene bloccata alla radice. I miei 0, 1 e -1 sono diventati direttamente i caratteri visivi spazio, \% e \#!"}
 
+
 \end{document}

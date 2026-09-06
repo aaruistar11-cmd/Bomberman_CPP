@@ -1,5 +1,6 @@
 #include "Mappa.hpp"
 #include <ctime>
+#include <cstring>
 
 // ============================================================================
 // COSTRUTTORE E INIZIALIZZAZIONE
@@ -143,11 +144,19 @@ void Mappa::disegnaLayout(int punti, int tempo, int vite) {
     }
     addch(ACS_URCORNER); 
     
-    // Print vite at the top right
+    // Draw [p] and [n] on the sidebars (left for past, right for next)
     attron(A_BOLD);
-    mvprintw(inizioY, inizioX + larghezzaBox + 2, "vita/e : %d", vite);
-    mvprintw(inizioY + 2, inizioX + larghezzaBox + 2, "[n] : Prossimo Livello");
-    mvprintw(inizioY + 3, inizioX + larghezzaBox + 2, "[p] : Livello Precedente");
+    int midY = inizioY + altezzaBox / 2;
+    
+    int leftX = inizioX - 5;
+    if (leftX < 0) leftX = 0;
+    mvprintw(midY - 1, leftX, "[p]");
+    mvprintw(midY, leftX + 1, "<");
+    
+    int rightX = inizioX + larghezzaBox + 2;
+    mvprintw(midY - 1, rightX, "[n]");
+    mvprintw(midY, rightX + 1, ">");
+    
     attroff(A_BOLD);
     
     for (int rigaBox = 1; rigaBox < altezzaBox - 1; rigaBox++) {
@@ -161,17 +170,9 @@ void Mappa::disegnaLayout(int punti, int tempo, int vite) {
     move(inizioY + altezzaBox - 1, inizioX);
     addch(ACS_LLCORNER); 
     
-    int cifrePunti = 1;
-    int copiaPunti = punti;
-    if (copiaPunti < 0) { cifrePunti++; copiaPunti = -copiaPunti; }
-    while (copiaPunti > 9) { cifrePunti++; copiaPunti /= 10; }
-    
-    int cifreTempo = 1;
-    int copiaTempo = tempo;
-    if (copiaTempo < 0) { cifreTempo++; copiaTempo = -copiaTempo; }
-    while (copiaTempo > 9) { cifreTempo++; copiaTempo /= 10; }
-    
-    int lunghezzaFooter = 8 + cifrePunti + 9 + cifreTempo;
+    char footerStr[100];
+    snprintf(footerStr, sizeof(footerStr), "points: %d   time: %d   vita/e: %d", punti, tempo, vite);
+    int lunghezzaFooter = strlen(footerStr);
     
     int footerSinistra = (larghezzaBox - 2 - lunghezzaFooter) / 2;
     int footerDestra = larghezzaBox - 2 - lunghezzaFooter - footerSinistra;
@@ -181,7 +182,7 @@ void Mappa::disegnaLayout(int punti, int tempo, int vite) {
     }
     
     attron(A_BOLD);
-    printw("points: %d   time: %d", punti, tempo);
+    printw("%s", footerStr);
     attroff(A_BOLD);
     
     for (int i = 0; i < footerDestra; i++) {

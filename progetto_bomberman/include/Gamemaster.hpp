@@ -8,6 +8,7 @@ using namespace std;
 #include "Tempo.hpp"
 #include "Schermo.hpp"
 #include <ctime>
+#include "GestoreLivelli.hpp"
 
 enum StatoGioco {
     STATO_MENU, STATO_PARTITA, STATO_FINE, STATO_ESCI, STATO_CLASSIFICA

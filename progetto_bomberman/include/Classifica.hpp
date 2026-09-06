@@ -19,6 +19,9 @@ protected:
     Schermo sch;
     cl classifica[200];
     int punti;
+    WINDOW* backBtn;
+    void aggiornaBackButton();
+    bool isClickBackButton(MEVENT& event);
 public:
     Classifica();
     void Npunti();

@@ -30,8 +30,11 @@ void Gamemaster::responsive() {
                 Tempo.addpausa(secondi_di_pausa);
             }
         }
-        oldH = h;
-        oldW = w;
+        // RE-ENABLE TIMEOUT FOR GAME LOOP
+        if (stato == STATO_PARTITA) {
+            timeout(100);
+        }
+        getmaxyx(stdscr, oldH, oldW);
         if (stato == STATO_MENU) menu.drawMenu();
         else if (stato == STATO_PARTITA) {
             // Mappa gestisce già il resize e l'UI integrata
@@ -81,8 +84,6 @@ void Gamemaster::startfine() {
 }
 
 //Disegna e gestisce l'inizio della partita
-#include "GestoreLivelli.hpp"
-
 void Gamemaster::startpartita() {
     keypad(stdscr, TRUE);
     // nodelay rimosso perché timeout(100) fa già il suo lavoro e fa girare il gioco a 10 fps costanti
@@ -116,8 +117,7 @@ void Gamemaster::startpartita() {
         Tempo.diminuiscitempo();
         pl.decrementSpeedTicks();
         
-        if (Punti.puntif()>=1000) stato=STATO_FINE;
-        else if (Tempo.tempo_rimasto<=0) stato=STATO_FINE;
+        if (Tempo.tempo_rimasto<=0) stato=STATO_FINE;
 
         // 2. AGGIORNAMENTO LOGICO (Entità)
         aggiornaBombe();
@@ -357,19 +357,6 @@ void Gamemaster::svuotaEntita() {
     }
     ihead = nullptr;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 // Trova spazi vuoti e li popola con Nemici
 void Gamemaster::spawnNemici(Mappa* mappa) {
