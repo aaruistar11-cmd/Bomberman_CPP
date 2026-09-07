@@ -5,6 +5,7 @@ int main() {
     srand(time(NULL)); // Seme per la generazione casuale della mappa
 
     initscr();
+    resize_term(0, 0);
     noecho();
     cbreak();
     curs_set(0);

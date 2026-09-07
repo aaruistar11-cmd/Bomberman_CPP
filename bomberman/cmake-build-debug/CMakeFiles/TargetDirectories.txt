@@ -1,0 +1,3 @@
+C:/Users/ghini/OneDrive/Desktop/bomberman/cmake-build-debug/CMakeFiles/bomberman.dir
+C:/Users/ghini/OneDrive/Desktop/bomberman/cmake-build-debug/CMakeFiles/edit_cache.dir
+C:/Users/ghini/OneDrive/Desktop/bomberman/cmake-build-debug/CMakeFiles/rebuild_cache.dir

@@ -19,7 +19,6 @@ void Menu::drawMenu() {
     drawbutton("Start", 0);
     drawbutton("Classifica", 1);
     drawbutton("Exit", 2);
-    refresh();
 }
 
 // Disegna la scritta Bomberman (grande o piccola)

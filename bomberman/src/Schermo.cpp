@@ -20,7 +20,9 @@ bool Schermo::controllaDimensione(int MIN_X, int MIN_Y) {
     wtimeout(stdscr, 100);
     while (curY < MIN_Y || curX < MIN_X) {
         int ch = getch();
-        resize_term(0, 0);
+        if (ch == KEY_RESIZE) {
+            resize_term(0, 0);
+        }
         int newY, newX;
         getmaxyx(stdscr, newY, newX);
         if (newY != curY || newX != curX || ch == KEY_RESIZE) {
